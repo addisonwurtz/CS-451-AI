@@ -87,7 +87,8 @@ class Epoch:
         # select fit parents
         self.select_parents()
         # generate children
-        self.generate_children()
+        while len(self.children) < self.population_size:
+            self.generate_children()
         # mutate children
         self.mutate_children()
         return Epoch(self.population_size, self.generation + 1, self.fitness_function, self.mutation_percent,
@@ -95,8 +96,7 @@ class Epoch:
 
     def select_parents(self):
         for individual in self.population:
-            if random.gauss(mu=self.average_fitness, sigma=self.fitness_standard_deviation) \
-                    >= self.normalized_fitness(individual):
+            if random.randrange(0, 20) <= self.normalized_fitness(individual):
                 self.parents.append(individual)
             if len(self.parents) > self.population_size:
                 break
@@ -106,13 +106,13 @@ class Epoch:
         random.shuffle(shuffled_parents)
         i = 0
         crossover = random.randint(0, 7)
-        while i < len(shuffled_parents):
+        while i < len(shuffled_parents) - 1:
             child1 = Individual(shuffled_parents[i].board_state[:crossover] +
-                                shuffled_parents[i+1].board_state[crossover:],
-                                [shuffled_parents[i], shuffled_parents[i+1]], self.generation + 1)
-            child2 = Individual(shuffled_parents[i+1].board_state[:crossover]
+                                shuffled_parents[i + 1].board_state[crossover:],
+                                [shuffled_parents[i], shuffled_parents[i + 1]], self.generation + 1)
+            child2 = Individual(shuffled_parents[i + 1].board_state[:crossover]
                                 + shuffled_parents[i].board_state[crossover:],
-                                [shuffled_parents[i], shuffled_parents[i+1]], self.generation + 1)
+                                [shuffled_parents[i], shuffled_parents[i + 1]], self.generation + 1)
             self.children += [child1, child2]
             crossover = random.randint(0, 7)
             i = i + 2
@@ -144,21 +144,24 @@ class Epoch:
         return fittest
 
 
-"""
-test_population = Epoch(10, 1, non_attacking_queens_fitness_function, 1)
-print(str(test_population))
-print(f'Average fitness: {test_population.average_fitness}')
-print(f'Fittest Individual: {str(test_population.fittest_individual)}')
-print()
+def plot_average_fitness(generation_list, average_fitness_list, population_list, mutation_percent):
+    plt.plot(generation_list, average_fitness_list)
+    plt.xlabel('Generation')
+    plt.ylabel('Average Fitness')
+    plt.title(f'\n8 Queens Genetic Algorithm\nPopulation: {population_list}, Mutation Rate: {mutation_percent}%')
+    plt.show()
 
-test_population2 = test_population.generate_new_generation()
-print(str(test_population2))
-print(f'Average fitness: {test_population2.average_fitness}')
-print(f'Fittest Individual: {str(test_population2.fittest_individual)}')
-"""
+
+def plot_maximum_fitness(generation_list, most_fit_list, population_list, mutation_percent):
+    plt.plot(generation_list, most_fit_list)
+    plt.xlabel('Generation')
+    plt.ylabel('Maximum Fitness')
+    plt.title(f'\n8 Queens Genetic Algorithm\nPopulation: {population_list}, Mutation Rate: {mutation_percent}%')
+    plt.show()
+
 
 population = int(input("Population size: "))
-mutation_rate = int(input("Mutation percent: "))
+mutation_rate = float(input("Mutation percent: "))
 num_iterations = int(input("Number of iterations: "))
 print()
 
@@ -167,6 +170,7 @@ epochs = [initial_epoch]
 generation = [0]
 average_fitness = [initial_epoch.average_fitness]
 most_fit = [initial_epoch.fittest_individual]
+highest_fitness = [initial_epoch.fittest_individual.fitness]
 
 for i in range(0, num_iterations):
     generation.append(i)
@@ -174,15 +178,15 @@ for i in range(0, num_iterations):
     epochs.append(new_epoch)
     average_fitness.append(new_epoch.average_fitness)
     most_fit.append(new_epoch.fittest_individual)
-
-    print(str(new_epoch))
-    print(f'Average fitness: {new_epoch.average_fitness}')
-    print(f'Fittest Individual: {str(new_epoch.fittest_individual)}')
-    print()
-
-plt.plot(generation, average_fitness)
+    highest_fitness.append(new_epoch.fittest_individual.fitness)
 
 
+print('Maximum fitness achieved: ' + max(highest_fitness))
 
+print('Fittest individual from each epoch:')
+for each in most_fit:
+    print(str(each.board_state))
 
+plot_average_fitness(generation, average_fitness, population, mutation_rate)
+plot_maximum_fitness(generation, highest_fitness, population, mutation_rate)
 
