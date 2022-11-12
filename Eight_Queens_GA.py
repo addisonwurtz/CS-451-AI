@@ -1,8 +1,9 @@
 import random
+import matplotlib.pyplot as plt
 
 
 # fitness function = number of non-attacking pairs of queens (min = 0, max = 28)
-def number_of_non_attacking_pairs_of_queens_fitness_function(board_state: list[int]) -> int:
+def non_attacking_queens_fitness_function(board_state: list[int]) -> int:
     return 28 - get_number_of_attacking_queens(board_state)
 
 
@@ -37,24 +38,28 @@ class Individual:
         self.parents: [Individual] = parents
         self.generation = generation
 
+    def __str__(self):
+        return str(self.fitness) + '\t' + str(self.board_state)
+
     def calculate_fitness(self) -> int:
-        return number_of_non_attacking_pairs_of_queens_fitness_function(self.board_state)
+        return non_attacking_queens_fitness_function(self.board_state)
 
     def mutate(self):
         self.board_state[random.randint(0, 7)] = random.randint(1, 8)
 
 
-class Population:
+class Epoch:
     def __init__(self, population_size: int, generation_number: int, fitness_function, mutation_percent, population=[]):
         self.population_size = population_size
         self.generation = generation_number
         self.fitness_function = fitness_function
         self.mutation_percent = mutation_percent
-        if generation_number == 1:
+        if not population:
             self.population: [Individual] = self.generate_random_population(population_size)
         else:
             self.population: [Individual] = population
         self.average_fitness = self.calculate_average_fitness_of_population()
+        self.fittest_individual = self.find_fittest()
         self.fitness_standard_deviation = self.calculate_fitness_standard_deviation()
         self.parents: [Individual] = []
         self.children: [Individual] = []
@@ -78,15 +83,15 @@ class Population:
             random_population.append(self.generate_random_individual())
         return random_population
 
-    def generate_new_generation(self):
+    def create_new_generation(self):
         # select fit parents
         self.select_parents()
         # generate children
         self.generate_children()
         # mutate children
         self.mutate_children()
-        return Population(self.population_size, self.generation + 1, self.fitness_function, self.mutation_percent,
-                          self.children)
+        return Epoch(self.population_size, self.generation + 1, self.fitness_function, self.mutation_percent,
+                     self.children)
 
     def select_parents(self):
         for individual in self.population:
@@ -97,11 +102,11 @@ class Population:
                 break
 
     def generate_children(self):
-        shuffled_parents = self.parents
+        shuffled_parents: [] = self.parents
         random.shuffle(shuffled_parents)
         i = 0
         crossover = random.randint(0, 7)
-        while i < len(shuffled_parents) - 2:
+        while i < len(shuffled_parents):
             child1 = Individual(shuffled_parents[i].board_state[:crossover] +
                                 shuffled_parents[i+1].board_state[crossover:],
                                 [shuffled_parents[i], shuffled_parents[i+1]], self.generation + 1)
@@ -131,12 +136,53 @@ class Population:
                    / self.population_size
         return variance ** 0.5
 
+    def find_fittest(self):
+        fittest: Individual = self.population[0]
+        for individual in self.population:
+            if individual.fitness > fittest.fitness:
+                fittest = individual
+        return fittest
 
-test_population = Population(10, 1, number_of_non_attacking_pairs_of_queens_fitness_function, 1)
+
+"""
+test_population = Epoch(10, 1, non_attacking_queens_fitness_function, 1)
 print(str(test_population))
+print(f'Average fitness: {test_population.average_fitness}')
+print(f'Fittest Individual: {str(test_population.fittest_individual)}')
+print()
 
 test_population2 = test_population.generate_new_generation()
 print(str(test_population2))
+print(f'Average fitness: {test_population2.average_fitness}')
+print(f'Fittest Individual: {str(test_population2.fittest_individual)}')
+"""
 
-#test_board_state: [int] = [7, 6, 2, 5, 7, 4, 8, 3]
-#print(str(get_number_of_attacking_queens(test_board_state)))
+population = int(input("Population size: "))
+mutation_rate = int(input("Mutation percent: "))
+num_iterations = int(input("Number of iterations: "))
+print()
+
+initial_epoch = Epoch(population, 0, non_attacking_queens_fitness_function, mutation_rate)
+epochs = [initial_epoch]
+generation = [0]
+average_fitness = [initial_epoch.average_fitness]
+most_fit = [initial_epoch.fittest_individual]
+
+for i in range(0, num_iterations):
+    generation.append(i)
+    new_epoch = epochs[i].create_new_generation()
+    epochs.append(new_epoch)
+    average_fitness.append(new_epoch.average_fitness)
+    most_fit.append(new_epoch.fittest_individual)
+
+    print(str(new_epoch))
+    print(f'Average fitness: {new_epoch.average_fitness}')
+    print(f'Fittest Individual: {str(new_epoch.fittest_individual)}')
+    print()
+
+plt.plot(generation, average_fitness)
+
+
+
+
+
